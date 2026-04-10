@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ntn-miniloop"
+version = "0.1.0"
+description = "Closed-loop NTN simulation, scheduling, and RL environment toolkit."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=2.0",
+  "pandas>=2.2",
+  "matplotlib>=3.9",
+  "scipy>=1.14",
+  "sgp4>=2.25",
+  "gymnasium>=1.2",
+]
+
+[project.optional-dependencies]
+rl = [
+  "stable-baselines3>=2.8",
+]
+
+[tool.setuptools.packages.find]
+include = ["ntn_miniloop*"]
