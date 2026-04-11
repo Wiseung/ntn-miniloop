@@ -8,4 +8,5 @@ _vendor/
 .venv/
 .pytest_cache/
 .mypy_cache/
+.github_token
 scratch/
