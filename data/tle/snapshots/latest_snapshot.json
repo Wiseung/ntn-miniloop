@@ -1,9 +1,30 @@
 {
   "tag": "2026-04-11",
-  "starlink_dated": "data/tle/snapshots/starlink_2026-04-11.tle",
-  "starlink_latest": "data/tle/snapshots/starlink_latest.tle",
-  "oneweb_dated": "data/tle/snapshots/oneweb_2026-04-11.tle",
-  "oneweb_latest": "data/tle/snapshots/oneweb_latest.tle",
-  "combined_dated": "data/tle/snapshots/starlink_oneweb_2026-04-11.tle",
-  "combined_latest": "data/tle/snapshots/starlink_oneweb_latest.tle"
+  "generated_at_utc": "2026-04-11T05:36:28.756352+00:00",
+  "sources": {
+    "starlink": {
+      "dated_path": "data/tle/snapshots/starlink_2026-04-11.tle",
+      "latest_path": "data/tle/snapshots/starlink_latest.tle",
+      "object_count": 10156,
+      "line_count": 30468,
+      "fetch_ok": false,
+      "fetch_status": "cached (HTTP Error 403: Forbidden)",
+      "fetch_error": "HTTP Error 403: Forbidden"
+    },
+    "oneweb": {
+      "dated_path": "data/tle/snapshots/oneweb_2026-04-11.tle",
+      "latest_path": "data/tle/snapshots/oneweb_latest.tle",
+      "object_count": 651,
+      "line_count": 1953,
+      "fetch_ok": true,
+      "fetch_status": "downloaded",
+      "fetch_error": null
+    }
+  },
+  "combined": {
+    "dated_path": "data/tle/snapshots/starlink_oneweb_2026-04-11.tle",
+    "latest_path": "data/tle/snapshots/starlink_oneweb_latest.tle",
+    "object_count": 10807,
+    "line_count": 32421
+  }
 }
