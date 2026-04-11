@@ -39,19 +39,75 @@ jobs:
       - name: Refresh latest aliases
         run: python tools/fetch_tle_snapshots.py --tag "${{ steps.tag.outputs.value }}"
 
+      - name: Detect snapshot changes
+        id: changes
+        shell: bash
+        run: |
+          if git diff --quiet --exit-code -- data/tle/snapshots; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "No snapshot changes detected."
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            echo "Snapshot changes detected."
+          fi
+
+      - name: Build PR body
+        if: steps.changes.outputs.has_changes == 'true'
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          manifest = json.loads(Path("data/tle/snapshots/latest_snapshot.json").read_text(encoding="utf-8"))
+          lines = [
+              "Refreshes latest TLE aliases and snapshot manifest.",
+              "",
+              f"- snapshot tag: `{manifest['tag']}`",
+              f"- generated at: `{manifest['generated_at_utc']}`",
+              "",
+              "## Source Summary",
+              "",
+              "| Source | Objects | Lines | Fetch OK | Status |",
+              "| --- | ---: | ---: | --- | --- |",
+          ]
+          for source_name, source_info in manifest["sources"].items():
+              lines.append(
+                  "| {name} | {objects} | {lines_count} | {fetch_ok} | {status} |".format(
+                      name=source_name,
+                      objects=source_info["object_count"],
+                      lines_count=source_info["line_count"],
+                      fetch_ok=str(source_info["fetch_ok"]).lower(),
+                      status=source_info["fetch_status"],
+                  )
+              )
+          lines.extend(
+              [
+                  "",
+                  "## Combined",
+                  "",
+                  "- objects: `{}`".format(manifest["combined"]["object_count"]),
+                  "- lines: `{}`".format(manifest["combined"]["line_count"]),
+                  "",
+                  "## Changed Files",
+                  "",
+                  "- updates `*_latest.tle` aliases",
+                  "- updates `latest_snapshot.json`",
+                  "- stores dated snapshot files for the current tag",
+              ]
+          )
+          Path("pr_body.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
+
       - name: Create Pull Request
+        if: steps.changes.outputs.has_changes == 'true'
         uses: peter-evans/create-pull-request@v8
         with:
           branch: chore/refresh-tle-latest
           delete-branch: true
           title: "chore: refresh TLE latest snapshots"
           commit-message: "chore: refresh TLE latest snapshots"
-          body: |
-            Refreshes latest TLE aliases and snapshot manifest.
-
-            - updates `*_latest.tle`
-            - updates `latest_snapshot.json`
-            - stores dated snapshot files for the current tag
+          body-path: pr_body.md
           add-paths: |
             data/tle/snapshots/*.tle
             data/tle/snapshots/latest_snapshot.json
