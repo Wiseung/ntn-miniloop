@@ -130,6 +130,8 @@ After this runs, the script automatically refreshes:
 
 The large TLE configs already point to these `latest` aliases, so no manual JSON edits are needed after each snapshot refresh.
 
+GitHub Actions also includes a scheduled workflow that refreshes these latest aliases and opens a PR automatically.
+
 Run a subset:
 
 ```bash
