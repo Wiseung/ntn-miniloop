@@ -46,8 +46,8 @@
   "airborne_min_turn_radius_m": 7000.0,
   "tle_file": null,
   "tle_files": [
-    "data/tle/snapshots/starlink_2026-04-10.tle",
-    "data/tle/snapshots/oneweb_2026-04-10.tle"
+    "data/tle/snapshots/starlink_latest.tle",
+    "data/tle/snapshots/oneweb_latest.tle"
   ],
   "tle_selection_mode": "round_robin",
   "tle_start_offset_s": 0.0,

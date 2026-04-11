@@ -33,7 +33,7 @@
   "user_mobility_mode": "linear",
   "user_speeds_kmph": [50.0, 0.0, 40.0, 70.0, 800.0, 30.0, 60.0, 45.0],
   "user_headings_deg": [120.0, 0.0, 90.0, 250.0, 270.0, 45.0, 180.0, 315.0],
-  "tle_file": "data/tle/snapshots/oneweb_2026-04-10.tle",
+  "tle_file": "data/tle/snapshots/oneweb_latest.tle",
   "tle_files": [],
   "tle_selection_mode": "round_robin",
   "tle_start_offset_s": 0.0,

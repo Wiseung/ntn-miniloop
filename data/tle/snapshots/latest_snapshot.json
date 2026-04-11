@@ -1,0 +1,9 @@
+{
+  "tag": "2026-04-11",
+  "starlink_dated": "data/tle/snapshots/starlink_2026-04-11.tle",
+  "starlink_latest": "data/tle/snapshots/starlink_latest.tle",
+  "oneweb_dated": "data/tle/snapshots/oneweb_2026-04-11.tle",
+  "oneweb_latest": "data/tle/snapshots/oneweb_latest.tle",
+  "combined_dated": "data/tle/snapshots/starlink_oneweb_2026-04-11.tle",
+  "combined_latest": "data/tle/snapshots/starlink_oneweb_latest.tle"
+}

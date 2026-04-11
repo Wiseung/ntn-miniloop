@@ -22,6 +22,8 @@ The control stack is no longer limited to handover heuristics. It includes:
 - `configs/tle_starlink_oneweb_mixed.json`: mixed-constellation TLE scenario using multiple source files.
 - `data/tle/sample_demo.tle`: small bundled TLE example.
 - `data/tle/snapshots/*.tle`: downloaded real snapshots.
+- `data/tle/snapshots/*_latest.tle`: auto-refreshed latest aliases.
+- `data/tle/snapshots/latest_snapshot.json`: manifest describing the current latest snapshot tag.
 - `tools/fetch_tle_snapshots.py`: refresh Starlink/OneWeb snapshots from official CelesTrak endpoints.
 - `ntn_miniloop/core.py`: simulation, schedulers, interference model, reporting.
 - `ntn_miniloop/env.py`: Gym-style RL environment wrapper.
@@ -105,8 +107,28 @@ python run_closed_loop.py --config configs/tle_starlink_oneweb_mixed.json --poli
 Refresh official snapshots:
 
 ```bash
-python tools/fetch_tle_snapshots.py --tag 2026-04-10
+python tools/fetch_tle_snapshots.py --tag 2026-04-11
 ```
+
+Print the currently active latest tag:
+
+```bash
+python tools/fetch_tle_snapshots.py --print-latest
+```
+
+Reuse the tag already recorded in `latest_snapshot.json`:
+
+```bash
+python tools/fetch_tle_snapshots.py --use-latest-tag
+```
+
+After this runs, the script automatically refreshes:
+
+- `data/tle/snapshots/starlink_latest.tle`
+- `data/tle/snapshots/oneweb_latest.tle`
+- `data/tle/snapshots/starlink_oneweb_latest.tle`
+
+The large TLE configs already point to these `latest` aliases, so no manual JSON edits are needed after each snapshot refresh.
 
 Run a subset:
 
