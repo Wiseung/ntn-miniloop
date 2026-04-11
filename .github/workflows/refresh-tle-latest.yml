@@ -1,0 +1,57 @@
+name: Refresh TLE Latest
+
+on:
+  schedule:
+    - cron: "17 1 * * *"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Optional snapshot tag (defaults to current UTC date)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh-latest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Resolve snapshot tag
+        id: tag
+        shell: bash
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            echo "value=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=$(date -u +%F)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Refresh latest aliases
+        run: python tools/fetch_tle_snapshots.py --tag "${{ steps.tag.outputs.value }}"
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v8
+        with:
+          branch: chore/refresh-tle-latest
+          delete-branch: true
+          title: "chore: refresh TLE latest snapshots"
+          commit-message: "chore: refresh TLE latest snapshots"
+          body: |
+            Refreshes latest TLE aliases and snapshot manifest.
+
+            - updates `*_latest.tle`
+            - updates `latest_snapshot.json`
+            - stores dated snapshot files for the current tag
+          add-paths: |
+            data/tle/snapshots/*.tle
+            data/tle/snapshots/latest_snapshot.json
