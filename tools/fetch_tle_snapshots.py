@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import date
+from datetime import date, datetime, timezone
 import json
 from pathlib import Path
 import urllib.request
@@ -70,27 +70,41 @@ def main() -> None:
         args.tag = manifest["tag"]
 
     written_files: list[Path] = []
-    latest_files: list[Path] = []
-    snapshot_manifest: dict[str, str] = {"tag": args.tag}
+    snapshot_manifest: dict[str, object] = {
+        "tag": args.tag,
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "sources": {},
+    }
     for name, url in OFFICIAL_URLS.items():
         target_path = output_dir / f"{name}_{args.tag}.tle"
         try:
             content = fetch_text(url)
             source_mode = "downloaded"
+            fetch_ok = True
+            fetch_error = None
         except (HTTPError, URLError, TimeoutError) as exc:
             if args.no_cache_fallback or not target_path.exists():
                 raise
             content = target_path.read_text(encoding="utf-8")
             source_mode = f"cached ({exc})"
+            fetch_ok = False
+            fetch_error = str(exc)
         target_path.write_text(content, encoding="utf-8")
         written_files.append(target_path)
         latest_path = output_dir / f"{name}_latest.tle"
         latest_path.write_text(content, encoding="utf-8")
-        latest_files.append(latest_path)
-        snapshot_manifest[f"{name}_dated"] = target_path.as_posix()
-        snapshot_manifest[f"{name}_latest"] = latest_path.as_posix()
-        line_count = len([line for line in content.splitlines() if line.strip()])
-        object_count = line_count // (3 if content.splitlines() and not content.splitlines()[0].startswith("1 ") else 2)
+        lines = [line for line in content.splitlines() if line.strip()]
+        line_count = len(lines)
+        object_count = line_count // (3 if lines and not lines[0].startswith("1 ") else 2)
+        snapshot_manifest["sources"][name] = {
+            "dated_path": target_path.as_posix(),
+            "latest_path": latest_path.as_posix(),
+            "object_count": object_count,
+            "line_count": line_count,
+            "fetch_ok": fetch_ok,
+            "fetch_status": source_mode,
+            "fetch_error": fetch_error,
+        }
         print(f"{name}: {target_path} ({object_count} objects, {source_mode})")
         print(f"{name}_latest: {latest_path}")
 
@@ -99,8 +113,14 @@ def main() -> None:
     combined_path.write_text(combined_payload, encoding="utf-8")
     combined_latest_path = output_dir / "starlink_oneweb_latest.tle"
     combined_latest_path.write_text(combined_payload, encoding="utf-8")
-    snapshot_manifest["combined_dated"] = combined_path.as_posix()
-    snapshot_manifest["combined_latest"] = combined_latest_path.as_posix()
+    combined_lines = [line for line in combined_payload.splitlines() if line.strip()]
+    combined_objects = len(combined_lines) // (3 if combined_lines and not combined_lines[0].startswith("1 ") else 2)
+    snapshot_manifest["combined"] = {
+        "dated_path": combined_path.as_posix(),
+        "latest_path": combined_latest_path.as_posix(),
+        "object_count": combined_objects,
+        "line_count": len(combined_lines),
+    }
     snapshot_manifest_path.write_text(json.dumps(snapshot_manifest, indent=2), encoding="utf-8")
     print(f"combined: {combined_path}")
     print(f"combined_latest: {combined_latest_path}")
