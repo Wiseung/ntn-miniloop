@@ -36,8 +36,43 @@ jobs:
             echo "value=$(date -u +%F)" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Preserve previous manifest
+        shell: bash
+        run: |
+          if [ -f data/tle/snapshots/latest_snapshot.json ]; then
+            cp data/tle/snapshots/latest_snapshot.json data/tle/snapshots/latest_snapshot.before.json
+          else
+            echo '{}' > data/tle/snapshots/latest_snapshot.before.json
+          fi
+
       - name: Refresh latest aliases
         run: python tools/fetch_tle_snapshots.py --tag "${{ steps.tag.outputs.value }}"
+
+      - name: Validate fetch quality
+        id: quality
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          manifest = json.loads(Path("data/tle/snapshots/latest_snapshot.json").read_text(encoding="utf-8"))
+          sources = manifest.get("sources", {})
+          failures = [name for name, info in sources.items() if not info.get("fetch_ok", False)]
+          all_failed = bool(sources) and len(failures) == len(sources)
+          labels = []
+          if failures:
+              labels.append("tle-fetch-warning")
+          with open(Path.cwd() / "quality_outputs.txt", "w", encoding="utf-8") as handle:
+              handle.write(f"all_failed={'true' if all_failed else 'false'}\n")
+              handle.write(f"pr_labels={','.join(labels)}\n")
+              handle.write(f"failed_sources={','.join(failures)}\n")
+          if all_failed:
+              raise SystemExit(f"All TLE sources failed to refresh: {', '.join(failures)}")
+          PY
+          while IFS='=' read -r key value; do
+            echo "${key}=${value}" >> "$GITHUB_OUTPUT"
+          done < quality_outputs.txt
 
       - name: Detect snapshot changes
         id: changes
@@ -60,6 +95,20 @@ jobs:
           from pathlib import Path
 
           manifest = json.loads(Path("data/tle/snapshots/latest_snapshot.json").read_text(encoding="utf-8"))
+          previous = json.loads(Path("data/tle/snapshots/latest_snapshot.before.json").read_text(encoding="utf-8"))
+
+          def previous_object_count(source_name):
+              try:
+                  return previous["sources"][source_name]["object_count"]
+              except Exception:
+                  return None
+
+          def delta_str(current, previous_value):
+              if previous_value is None:
+                  return "n/a"
+              delta = current - previous_value
+              return f"{delta:+d}"
+
           lines = [
               "Refreshes latest TLE aliases and snapshot manifest.",
               "",
@@ -68,18 +117,29 @@ jobs:
               "",
               "## Source Summary",
               "",
-              "| Source | Objects | Lines | Fetch OK | Status |",
-              "| --- | ---: | ---: | --- | --- |",
+              "| Source | Objects | Delta vs previous | Lines | Fetch OK | Status |",
+              "| --- | ---: | ---: | ---: | --- | --- |",
           ]
           for source_name, source_info in manifest["sources"].items():
               lines.append(
-                  "| {name} | {objects} | {lines_count} | {fetch_ok} | {status} |".format(
+                  "| {name} | {objects} | {delta} | {lines_count} | {fetch_ok} | {status} |".format(
                       name=source_name,
                       objects=source_info["object_count"],
+                      delta=delta_str(source_info["object_count"], previous_object_count(source_name)),
                       lines_count=source_info["line_count"],
                       fetch_ok=str(source_info["fetch_ok"]).lower(),
                       status=source_info["fetch_status"],
                   )
+              )
+          failed_sources = [name for name, info in manifest["sources"].items() if not info.get("fetch_ok", False)]
+          if failed_sources:
+              lines.extend(
+                  [
+                      "",
+                      "## Fetch Warnings",
+                      "",
+                      "- failed sources: `{}`".format(", ".join(failed_sources)),
+                  ]
               )
           lines.extend(
               [
@@ -87,6 +147,12 @@ jobs:
                   "## Combined",
                   "",
                   "- objects: `{}`".format(manifest["combined"]["object_count"]),
+                  "- delta vs previous: `{}`".format(
+                      delta_str(
+                          manifest["combined"]["object_count"],
+                          previous.get("combined", {}).get("object_count"),
+                      )
+                  ),
                   "- lines: `{}`".format(manifest["combined"]["line_count"]),
                   "",
                   "## Changed Files",
@@ -99,27 +165,16 @@ jobs:
           Path("pr_body.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
           PY
 
-      - name: Report PR auth mode
-        if: steps.changes.outputs.has_changes == 'true'
-        shell: bash
-        run: |
-          if [ -n "${{ secrets.CODEX_PR_TOKEN }}" ]; then
-            echo "Using CODEX_PR_TOKEN for pull request creation."
-          else
-            echo "Using default github.token for pull request creation."
-            echo "If PR creation fails, either enable 'Allow GitHub Actions to create and approve pull requests' or add the CODEX_PR_TOKEN secret."
-          fi
-
       - name: Create Pull Request
         if: steps.changes.outputs.has_changes == 'true'
         uses: peter-evans/create-pull-request@v8
         with:
-          token: ${{ secrets.CODEX_PR_TOKEN || github.token }}
           branch: chore/refresh-tle-latest
           delete-branch: true
           title: "chore: refresh TLE latest snapshots"
           commit-message: "chore: refresh TLE latest snapshots"
           body-path: pr_body.md
+          labels: ${{ steps.quality.outputs.pr_labels }}
           add-paths: |
             data/tle/snapshots/*.tle
             data/tle/snapshots/latest_snapshot.json
