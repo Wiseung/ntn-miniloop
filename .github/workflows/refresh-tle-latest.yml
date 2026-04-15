@@ -99,10 +99,22 @@ jobs:
           Path("pr_body.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
           PY
 
+      - name: Report PR auth mode
+        if: steps.changes.outputs.has_changes == 'true'
+        shell: bash
+        run: |
+          if [ -n "${{ secrets.CODEX_PR_TOKEN }}" ]; then
+            echo "Using CODEX_PR_TOKEN for pull request creation."
+          else
+            echo "Using default github.token for pull request creation."
+            echo "If PR creation fails, either enable 'Allow GitHub Actions to create and approve pull requests' or add the CODEX_PR_TOKEN secret."
+          fi
+
       - name: Create Pull Request
         if: steps.changes.outputs.has_changes == 'true'
         uses: peter-evans/create-pull-request@v8
         with:
+          token: ${{ secrets.CODEX_PR_TOKEN || github.token }}
           branch: chore/refresh-tle-latest
           delete-branch: true
           title: "chore: refresh TLE latest snapshots"
