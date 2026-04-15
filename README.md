@@ -131,6 +131,7 @@ After this runs, the script automatically refreshes:
 The large TLE configs already point to these `latest` aliases, so no manual JSON edits are needed after each snapshot refresh.
 
 GitHub Actions also includes a scheduled workflow that refreshes these latest aliases and opens a PR automatically.
+If your repository does not allow the default `GITHUB_TOKEN` to create PRs, add a `CODEX_PR_TOKEN` Actions secret and the workflow will use it automatically.
 
 Run a subset:
 
