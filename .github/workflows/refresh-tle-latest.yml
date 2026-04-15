@@ -63,10 +63,22 @@ jobs:
           labels = []
           if failures:
               labels.append("tle-fetch-warning")
+          error_lines = []
+          for name in failures:
+              info = sources[name]
+              error_lines.append(
+                  f"- `{name}`: status=`{info.get('fetch_status')}` error=`{info.get('fetch_error')}`"
+              )
           with open(Path.cwd() / "quality_outputs.txt", "w", encoding="utf-8") as handle:
               handle.write(f"all_failed={'true' if all_failed else 'false'}\n")
               handle.write(f"pr_labels={','.join(labels)}\n")
               handle.write(f"failed_sources={','.join(failures)}\n")
+          Path("failure_comment.md").write_text(
+              "## TLE Fetch Warning\n\n"
+              + "One or more sources failed to refresh cleanly in this run.\n\n"
+              + ("\n".join(error_lines) if error_lines else "No failed sources.\n"),
+              encoding="utf-8",
+          )
           if all_failed:
               raise SystemExit(f"All TLE sources failed to refresh: {', '.join(failures)}")
           PY
@@ -108,6 +120,12 @@ jobs:
                   return "n/a"
               delta = current - previous_value
               return f"{delta:+d}"
+
+          def delta_pct_str(current, previous_value):
+              if previous_value in (None, 0):
+                  return "n/a"
+              delta_pct = (current - previous_value) / previous_value * 100.0
+              return f"{delta_pct:+.2f}%"
 
           lines = [
               "Refreshes latest TLE aliases and snapshot manifest.",
@@ -153,6 +171,12 @@ jobs:
                           previous.get("combined", {}).get("object_count"),
                       )
                   ),
+                  "- delta vs previous (%): `{}`".format(
+                      delta_pct_str(
+                          manifest["combined"]["object_count"],
+                          previous.get("combined", {}).get("object_count"),
+                      )
+                  ),
                   "- lines: `{}`".format(manifest["combined"]["line_count"]),
                   "",
                   "## Changed Files",
@@ -166,6 +190,7 @@ jobs:
           PY
 
       - name: Create Pull Request
+        id: cpr
         if: steps.changes.outputs.has_changes == 'true'
         uses: peter-evans/create-pull-request@v8
         with:
@@ -178,3 +203,17 @@ jobs:
           add-paths: |
             data/tle/snapshots/*.tle
             data/tle/snapshots/latest_snapshot.json
+
+      - name: Comment detailed fetch warnings
+        if: steps.changes.outputs.has_changes == 'true' && steps.quality.outputs.failed_sources != '' && steps.cpr.outputs.pull-request-number != ''
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('failure_comment.md', 'utf8');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number('${{ steps.cpr.outputs.pull-request-number }}'),
+              body,
+            });
