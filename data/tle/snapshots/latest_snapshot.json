@@ -1,18 +1,18 @@
 {
-  "tag": "2026-04-11",
-  "generated_at_utc": "2026-04-11T13:11:16.578511+00:00",
+  "tag": "2026-04-27",
+  "generated_at_utc": "2026-04-27T04:42:31.744904+00:00",
   "sources": {
     "starlink": {
-      "dated_path": "data/tle/snapshots/starlink_2026-04-11.tle",
+      "dated_path": "data/tle/snapshots/starlink_2026-04-27.tle",
       "latest_path": "data/tle/snapshots/starlink_latest.tle",
-      "object_count": 10156,
-      "line_count": 30468,
+      "object_count": 10238,
+      "line_count": 30714,
       "fetch_ok": true,
       "fetch_status": "downloaded",
       "fetch_error": null
     },
     "oneweb": {
-      "dated_path": "data/tle/snapshots/oneweb_2026-04-11.tle",
+      "dated_path": "data/tle/snapshots/oneweb_2026-04-27.tle",
       "latest_path": "data/tle/snapshots/oneweb_latest.tle",
       "object_count": 651,
       "line_count": 1953,
@@ -22,9 +22,9 @@
     }
   },
   "combined": {
-    "dated_path": "data/tle/snapshots/starlink_oneweb_2026-04-11.tle",
+    "dated_path": "data/tle/snapshots/starlink_oneweb_2026-04-27.tle",
     "latest_path": "data/tle/snapshots/starlink_oneweb_latest.tle",
-    "object_count": 10807,
-    "line_count": 32421
+    "object_count": 10889,
+    "line_count": 32667
   }
 }
